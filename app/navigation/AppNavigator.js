@@ -1,67 +1,58 @@
 import React from "react";
-import { StyleSheet } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
 
-import AccountNavigator from "./AccountNavigator";
-import FeedNavigator from "./FeedNavigator";
-import ListingEditScreen from "../screens/ListingEditScreen";
-import NewListingButton from "./NewListingButton";
+import Home from "../screens/Home";
+import Appointments from "../screens/Appointments";
+import MyClients from "../screens/MyClients";
+import Notifications from "../screens/Notifications";
+import Profile from "../screens/Profile";
+
+import MyClientsFooter from "../components/MyClientsFooter";
+import Icon from "../assets/Icons";
 import routes from "./routes";
-import Screen from "../components/Screen";
-import navigation from "./rootNavigation";
-import useNotifications from "../hooks/useNotifications";
 
 const Tab = createBottomTabNavigator();
 
-const AppNavigator = () => {
-  useNotifications(() => navigation.navigate("Account"));
-
+const Tabs = () => {
   return (
-    <Screen style={styles.tab}>
-      <Tab.Navigator>
-        <Tab.Screen
-          name="Feed"
-          component={FeedNavigator}
-          options={{
-            tabBarIcon: ({ color, size }) => (
-              <MaterialCommunityIcons name="home" color={color} size={size} />
-            ),
-          }}
-        />
-        <Tab.Screen
-          name="ListingEditScreen"
-          component={ListingEditScreen}
-          options={({ navigation }) => ({
-            tabBarButton: () => (
-              <NewListingButton
-                onPress={() => navigation.navigate(routes.LISTING_EDIT)}
-              />
-            ),
-          })}
-        />
-        <Tab.Screen
-          name="Account"
-          component={AccountNavigator}
-          options={{
-            tabBarIcon: ({ color, size }) => (
-              <MaterialCommunityIcons
-                name="account"
-                color={color}
-                size={size}
-              />
-            ),
-          }}
-        />
-      </Tab.Navigator>
-    </Screen>
+    <Tab.Navigator
+      screenOptions={({ route }) => ({
+        tabBarIcon: ({ focused, color, size }) => {
+          let iconName;
+
+          if (route.name === routes.HOME) iconName = "home";
+          else if (route.name === routes.APPOINTMENTS) iconName = "calander";
+          else if (route.name === routes.NOTIFICATIONS) iconName = "bell";
+          else if (route.name === routes.PROFILE) iconName = "user";
+          else return <MyClientsFooter focused={focused} />;
+
+          // You can return any component that you like here!
+          return (
+            <Icon
+              name={iconName}
+              size={size}
+              color={focused ? "#E02828" : "#8A8A8A"}
+            />
+          );
+        },
+        tabBarActiveTintColor: "tomato",
+        tabBarInactiveTintColor: "gray",
+        tabBarLabel: route.name === routes.MYCLIENTS ? "" : route.name,
+        tabBarStyle: {
+          height: 70,
+          paddingBottom: 10,
+        },
+        headerShown: false,
+        tabBarHideOnKeyboard: true,
+      })}
+    >
+      <Tab.Screen name={routes.HOME} component={Home} />
+      <Tab.Screen name={routes.APPOINTMENTS} component={Appointments} />
+      <Tab.Screen name={routes.MYCLIENTS} component={MyClients} />
+      <Tab.Screen name={routes.NOTIFICATIONS} component={Notifications} />
+      <Tab.Screen name={routes.PROFILE} component={Profile} />
+    </Tab.Navigator>
   );
 };
 
-const styles = StyleSheet.create({
-  tab: {
-    paddingBottom: 2,
-  },
-});
-
-export default AppNavigator;
+export default Tabs;

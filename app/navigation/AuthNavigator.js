@@ -1,22 +1,16 @@
 import React from "react";
 import { createStackNavigator } from "@react-navigation/stack";
 
-import LoginScreen from "../screens/LoginScreen";
-import RegisterScreen from "../screens/RegisterScreen";
-import Welcome from "../screens/Welcome";
+import LoginScreen from "../screens/Login";
+import OTPScreen from "../screens/OTP";
 import routes from "./routes";
 
 const Stack = createStackNavigator();
 
 const AuthNavigator = () => (
-  <Stack.Navigator>
-    <Stack.Screen
-      name="Welcome"
-      component={Welcome}
-      options={{ headerShown: false }}
-    />
-    <Stack.Screen name="Login" component={LoginScreen} />
-    <Stack.Screen name="Register" component={RegisterScreen} />
+  <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Screen name={routes.LOGIN} component={LoginScreen} />
+    <Stack.Screen name={routes.OTP_INPUT_SCREEN} component={OTPScreen} />
   </Stack.Navigator>
 );
 

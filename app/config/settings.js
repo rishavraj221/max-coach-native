@@ -2,13 +2,13 @@ import Constants from "expo-constants";
 
 const settings = {
   dev: {
-    apiUrl: "http://192.168.43.183:9000/api",
+    apiUrl: "https://maxfit.herokuapp.com/api/v1",
   },
   staging: {
-    apiUrl: "http://192.168.43.183:9000/api",
+    apiUrl: "https://maxfit.herokuapp.com/api/v1",
   },
   prod: {
-    apiUrl: "http://192.168.43.183:9000/api",
+    apiUrl: "https://maxfit.herokuapp.com/api/v1",
   },
 };
 

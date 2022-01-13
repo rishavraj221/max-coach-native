@@ -1,6 +1,8 @@
-import React, { useState } from "react";
+import React from "react";
 import { StyleSheet, View, ScrollView, Alert } from "react-native";
 import * as Yup from "yup";
+import { Formik } from "formik";
+import _ from "lodash";
 
 import Screen from "../components/Screen";
 import AppText from "../components/Text";
@@ -11,17 +13,36 @@ import {
   ErrorMessage,
   SubmitButton,
 } from "../components/forms";
+import { sendOTP } from "../api/otp";
+import routes from "../navigation/routes";
+import { showErrorToast, showSuccessToast } from "../components/Toast";
 
 const validationSchema = Yup.object().shape({
   phone_number: Yup.string()
-    .required("Please enter your mobile number")
+    .required("")
     .length(10, "Please enter a valid mobile number")
     .label("Mobile Number"),
 });
 
-const LoginScreen = () => {
+const LoginScreen = ({ navigation }) => {
   const handleSubmit = async (something) => {
-    Alert.alert("Phone Number you entered", something.phone_number);
+    try {
+      showSuccessToast(
+        "Sending OTP to " + "+91-" + something.phone_number + "..."
+      );
+      const result = await sendOTP(something.phone_number);
+      console.log(result);
+
+      if (!result.ok || !result.data.Details)
+        return showErrorToast(result.originalError.message);
+      showSuccessToast("OTP sent successful");
+      navigation.navigate(routes.OTP_INPUT_SCREEN, {
+        Details: result.data.Details,
+        phone_number: something.phone_number,
+      });
+    } catch (ex) {
+      showErrorToast(ex.message);
+    }
   };
 
   return (
@@ -31,25 +52,32 @@ const LoginScreen = () => {
         <AppText style={styles.welcome_desc}>Sign in to your account</AppText>
         <PTSVG style={styles.ptsvg} />
         <View style={styles.form}>
-          <AppForm
+          <Formik
             initialValues={{ phone_number: "" }}
             onSubmit={handleSubmit}
             validationSchema={validationSchema}
           >
-            <AppFormField
-              phoneInput={true}
-              autoCorrect={false}
-              keyboardType="numeric"
-              name="phone_number"
-              placeholder="Your Mobile Number"
-            />
-            <AppText style={styles.formDesc}>
-              We will send you OTP on this number
-            </AppText>
-            <View style={styles.submitBtn}>
-              <SubmitButton title="Send OTP" disabled={false} />
-            </View>
-          </AppForm>
+            {({ errors }) => (
+              <View>
+                <AppFormField
+                  phoneInput={true}
+                  autoCorrect={false}
+                  keyboardType="numeric"
+                  name="phone_number"
+                  placeholder="Your Mobile Number"
+                />
+                <AppText style={styles.formDesc}>
+                  We will send you OTP on this number
+                </AppText>
+                <View style={styles.submitBtn}>
+                  <SubmitButton
+                    title="Send OTP"
+                    disabled={!_.isEmpty(errors)}
+                  />
+                </View>
+              </View>
+            )}
+          </Formik>
         </View>
         <AppText style={styles.applyContainer}>
           <AppText>Don't have an account? </AppText>

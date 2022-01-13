@@ -7,6 +7,11 @@ import settings from "../config/settings";
 const apiClient = create({
   baseURL: settings.apiUrl,
 });
+const verifyOTPapi = (headers) =>
+  create({
+    baseURL: settings.apiUrl,
+    headers,
+  });
 
 apiClient.addAsyncRequestTransform(async (request) => {
   const authToken = await authStorage.getToken();
@@ -26,4 +31,4 @@ apiClient.get = async (url, params, axiosConfig) => {
   return data ? { ok: true, data } : response;
 };
 
-export default apiClient;
+export { apiClient, verifyOTPapi };
