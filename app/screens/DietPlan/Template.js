@@ -6,6 +6,7 @@ import Icon from "../../assets/Icons";
 import AppText from "../../components/Text";
 import AppButton from "../../components/Button";
 import Screen from "../../components/Screen";
+import routes from "../../navigation/routes";
 
 const weeks = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
@@ -201,7 +202,11 @@ const DietPlanTemplate = ({ navigation }) => {
         )}
       </ScrollView>
       <View style={styles.nextBtn}>
-        <AppButton title="Next" width="90%" />
+        <AppButton
+          title="Next"
+          width="90%"
+          onPress={() => navigation.navigate(routes.CREATE_DIET_PLAN)}
+        />
       </View>
     </Screen>
   );

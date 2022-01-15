@@ -4,6 +4,8 @@ import { createStackNavigator } from "@react-navigation/stack";
 import ClientDetails from "../screens/ClientDetails";
 import AppTabNavigator from "./AppNavigator";
 import DietPlanTemplate from "../screens/DietPlan/Template";
+import DietPlanScreen from "../screens/DietPlan/Plan";
+import AddFoodScreen from "../screens/DietPlan/AddFood";
 
 import routes from "./routes";
 
@@ -22,6 +24,8 @@ const ClientStackNavigator = () => {
         name={routes.DIET_PLAN_TEMPLATE}
         component={DietPlanTemplate}
       />
+      <Stack.Screen name={routes.CREATE_DIET_PLAN} component={DietPlanScreen} />
+      <Stack.Screen name={routes.ADD_FOOD} component={AddFoodScreen} />
     </Stack.Navigator>
   );
 };

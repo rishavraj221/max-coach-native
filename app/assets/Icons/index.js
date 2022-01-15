@@ -2,6 +2,7 @@ import React from "react";
 import { Text } from "react-native";
 
 import Account from "./account";
+import Add from "./add";
 import ArrowLeft from "./arrowLeft";
 import ArrowLeft2 from "./arrowLeft2";
 import ArrowRight2 from "./arrowRight2";
@@ -10,6 +11,7 @@ import Calander from "./calander";
 import CWD from "./calanderWithDate";
 import CalorieTracker from "./calorieTracker";
 import Comment from "./comment";
+import Cross from "./cross";
 import DietPlan from "./dietPlan";
 import DropDown from "./dropdown";
 import FitnessPlan from "./fitnessPlan";
@@ -25,6 +27,7 @@ const Icon = ({ name, size, color, style }) => {
   const t = name.toLowerCase();
 
   if (t === "account") return <Account style={style} size={size} />;
+  if (t === "add") return <Add style={style} size={size} color={color} />;
   if (t === "arrowleft")
     return <ArrowLeft style={style} size={size} color={color} />;
   if (t === "arrowleft2")
@@ -40,6 +43,7 @@ const Icon = ({ name, size, color, style }) => {
     return <CalorieTracker style={style} size={size} color={color} />;
   if (t === "comment")
     return <Comment style={style} size={size} color={color} />;
+  if (t === "cross") return <Cross style={style} size={size} color={color} />;
   if (t === "dietplan")
     return <DietPlan style={style} size={size} color={color} />;
   if (t === "dropdown")
