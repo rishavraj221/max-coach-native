@@ -31,7 +31,6 @@ const LoginScreen = ({ navigation }) => {
         "Sending OTP to " + "+91-" + something.phone_number + "..."
       );
       const result = await sendOTP(something.phone_number);
-      console.log(result);
 
       if (!result.ok || !result.data.Details)
         return showErrorToast(result.originalError.message);

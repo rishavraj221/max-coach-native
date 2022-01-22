@@ -13,7 +13,7 @@ function MyClientCard({ data, onPress }) {
     >
       <View style={styles.iconCont}>
         <Icon name="account" size={40} />
-        {data.isGold && (
+        {data.plan === "premium" && (
           <View style={styles.gpCont}>
             <AppText style={styles.gpText}>GOLD PLAN</AppText>
           </View>
@@ -21,14 +21,14 @@ function MyClientCard({ data, onPress }) {
       </View>
       <View style={styles.dataCont}>
         <View style={styles.persDet}>
-          <AppText style={styles.dataname}>{data.name}</AppText>
+          <AppText style={styles.dataname}>{data.c_name}</AppText>
           <AppText style={styles.persDetText}>
-            {data.gender + " | " + data.age + " Years"}
+            {data.c_gender + " | " + data.c_age + " Years"}
           </AppText>
         </View>
         <AppText style={styles.fgText}>
           <AppText style={styles.fgHeadText}>Fitness Goal</AppText>{" "}
-          {data.fitnessGoal}
+          {data.c_fitnessobjective}
         </AppText>
       </View>
     </TouchableOpacity>

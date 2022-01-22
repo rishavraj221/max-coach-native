@@ -1,28 +1,166 @@
 import React, { useState } from "react";
-import { StyleSheet, ScrollView, View, TouchableOpacity } from "react-native";
+import {
+  StyleSheet,
+  ScrollView,
+  View,
+  TouchableOpacity,
+  Alert,
+} from "react-native";
 import { Switch } from "react-native-paper";
+import moment from "moment";
 
 import Icon from "../../assets/Icons";
 import AppText from "../../components/Text";
 import AppButton from "../../components/Button";
 import Screen from "../../components/Screen";
 import routes from "../../navigation/routes";
+import useAuth from "../../auth/useAuth";
 
-const weeks = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const weeks = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-const DietPlanTemplate = ({ navigation }) => {
+const mealArr = [
+  {
+    mealTime: "6:00 AM",
+    mealName: "Morning Snacks",
+  },
+  {
+    mealTime: "9:00 AM",
+    mealName: "Breakfast",
+  },
+  {
+    mealTime: "12:00 PM",
+    mealName: "Lunch",
+  },
+  {
+    mealTime: "6:00 PM",
+    mealName: "Evening Snacks",
+  },
+  {
+    mealTime: "9:00 PM",
+    mealName: "Dinner",
+  },
+  {
+    mealTime: "10:00 PM",
+    mealName: "Other",
+  },
+];
+
+const DietPlanTemplate = ({ route, navigation }) => {
+  const client = route.params;
+  const auth = useAuth();
   const [selectTemplate, setSelectTemplate] = useState(1);
   const [selectWeeks, setSelectWeeks] = useState([]);
   const [repeat, setRepeat] = useState(2);
 
   const handleWeekSelect = (week) => {
     const tempArr = [...selectWeeks];
-    const index = tempArr.indexOf(week);
+    const index = weeks.indexOf(week);
 
-    if (index === -1) tempArr.push(week);
-    else tempArr.splice(index, 1);
+    let weekPresent = false;
+    tempArr.forEach((w) => {
+      if (w === index) weekPresent = true;
+    });
+
+    if (weekPresent) {
+      const ind = tempArr.indexOf(index);
+      tempArr.splice(ind, 1);
+    } else {
+      tempArr.push(index);
+    }
+
+    tempArr.sort();
 
     setSelectWeeks(tempArr);
+  };
+
+  const checkForIndex = (arr, index) => {
+    let res = false;
+
+    arr.forEach((a) => {
+      if (a === index) res = true;
+    });
+
+    return res;
+  };
+
+  const getTemplateName = (templateIndex) => {
+    if (templateIndex === 1) return "Weight Loss";
+    if (templateIndex === 2) return "Weight Gain";
+    return "Balance Diet";
+  };
+
+  const generateDiItems = () => {
+    const res = [];
+
+    selectWeeks.forEach((w) => {
+      mealArr.forEach((m) => {
+        res.push({
+          day: w,
+          time: m.mealTime,
+          mealName: m.mealName,
+          food_items: [],
+          calories: 0,
+        });
+      });
+    });
+
+    return res;
+  };
+
+  const gen_dates = (di_weeks, di_days) => {
+    const res = [];
+
+    const days_arr = di_days.sort();
+
+    for (let i = 1; i <= di_weeks; i++) {
+      days_arr.forEach((d) =>
+        res.push(
+          moment()
+            .day(7 * i + d)
+            .format("YYYY-MM-DD")
+        )
+      );
+    }
+
+    return res;
+  };
+
+  const handleNextBtn = () => {
+    if (!selectTemplate)
+      return Alert.alert("Please select template", "Template is required");
+    if (selectWeeks.length === 0)
+      return Alert.alert(
+        "Please select atleast one week day",
+        "Week days are required for planning diet"
+      );
+    if (!repeat)
+      return Alert.alert(
+        "Please select repeat weeks",
+        "Repeat weeks are required"
+      );
+
+    const diet_plan_dates = gen_dates(repeat, selectWeeks);
+
+    console.log(
+      JSON.stringify(
+        {
+          client_id: client.c_id,
+          coach_id: auth.user.id,
+          di_weeks: repeat,
+          date_created: moment().format("YYYY-MM-DD"),
+          di_category: getTemplateName(selectTemplate),
+          di_days: selectWeeks,
+          di_item: generateDiItems(),
+          di_dates: diet_plan_dates,
+          start_date: diet_plan_dates[0],
+          end_date: diet_plan_dates[diet_plan_dates.length - 1],
+        },
+        null,
+        2
+      )
+    );
+    // console.log(generateDiItems);
+    navigation.navigate(routes.CREATE_DIET_PLAN);
   };
 
   return (
@@ -91,7 +229,7 @@ const DietPlanTemplate = ({ navigation }) => {
               ]}
             >
               <Icon name="weightLoss" style={styles.tempIcon} />
-              <AppText style={styles.tempText}>Weight Balance</AppText>
+              <AppText style={styles.tempText}>Balance Diet</AppText>
             </TouchableOpacity>
           </ScrollView>
         )}
@@ -110,8 +248,9 @@ const DietPlanTemplate = ({ navigation }) => {
               style={[
                 styles.daySelectorContainer,
                 {
-                  backgroundColor:
-                    selectWeeks.indexOf(w) > -1 ? "#e02828" : "#c4c4c4",
+                  backgroundColor: checkForIndex(selectWeeks, index)
+                    ? "#e02828"
+                    : "#c4c4c4",
                 },
               ]}
               onPress={() => handleWeekSelect(w)}
@@ -202,11 +341,7 @@ const DietPlanTemplate = ({ navigation }) => {
         )}
       </ScrollView>
       <View style={styles.nextBtn}>
-        <AppButton
-          title="Next"
-          width="90%"
-          onPress={() => navigation.navigate(routes.CREATE_DIET_PLAN)}
-        />
+        <AppButton title="Next" width="90%" onPress={handleNextBtn} />
       </View>
     </Screen>
   );

@@ -1,9 +1,12 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { StyleSheet, View, TextInput, ScrollView } from "react-native";
 
 import AppText from "../components/Text";
 import Screen from "../components/Screen";
 import MyClientCard from "../components/MyClientCard";
+import { getMyClients } from "../api/appClients";
+import useAuth from "../auth/useAuth";
+import authStorage from "../auth/storage";
 
 import routes from "../navigation/routes";
 
@@ -81,7 +84,33 @@ const data = [
 ];
 
 const MyClientsScreen = ({ navigation }) => {
+  const auth = useAuth();
   const [searchText, setSearchText] = useState("");
+  const [clients, setClients] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const getToken = async () => {
+    const r = await authStorage.getToken();
+    getClients(r, auth.user.id);
+  };
+
+  useEffect(() => {
+    getToken();
+  }, []);
+
+  const getClients = async (token, client_id) => {
+    try {
+      setLoading(true);
+      const result = await getMyClients(token, client_id);
+      setLoading(false);
+
+      if (!result.ok) return console.log(result);
+      setClients(result.data);
+      console.log(result);
+    } catch (ex) {
+      console.log(ex);
+    }
+  };
 
   return (
     <Screen style={styles.screen}>
@@ -92,9 +121,16 @@ const MyClientsScreen = ({ navigation }) => {
           onChangeText={setSearchText}
         />
       </View>
+      {loading && <AppText style={styles.loadTxt}>Loading Clients...</AppText>}
+      {clients && clients.length === 0 && (
+        <AppText style={[styles.loadTxt, { color: "#e02828" }]}>
+          No Clients
+        </AppText>
+      )}
       <ScrollView style={styles.scrollCont}>
         {searchText
-          ? data
+          ? clients &&
+            clients
               .filter((d) =>
                 d.name.toLowerCase().includes(searchText.toLowerCase())
               )
@@ -105,7 +141,8 @@ const MyClientsScreen = ({ navigation }) => {
                   onPress={() => navigation.navigate(routes.CLIENT_DETAIL, d)}
                 />
               ))
-          : data.map((d, index) => (
+          : clients &&
+            clients.map((d, index) => (
               <MyClientCard
                 key={index}
                 data={d}
@@ -144,6 +181,12 @@ const styles = StyleSheet.create({
   scrollCont: {
     backgroundColor: "#f1f1f1",
     marginTop: 10,
+  },
+  loadTxt: {
+    fontSize: 12,
+    textAlign: "center",
+    color: "green",
+    margin: 15,
   },
 });
 

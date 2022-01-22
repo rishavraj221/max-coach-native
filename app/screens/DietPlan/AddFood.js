@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   StyleSheet,
   ScrollView,
@@ -11,6 +11,9 @@ import AppText from "../../components/Text";
 import AppButton from "../../components/Button";
 import Screen from "../../components/Screen";
 import Icon from "../../assets/Icons";
+import { getFoods } from "../../api/diet";
+import useAuth from "../../auth/useAuth";
+import authStorage from "../../auth/storage";
 
 const foodData = [
   {
@@ -64,9 +67,51 @@ const foodTypes = [
 ];
 
 const AddFoodScreen = ({ route, navigation }) => {
+  const auth = useAuth();
   const diet = route.params;
   const [searchText, setSearchText] = useState("");
   const [foodType, setFoodType] = useState(foodTypes[0]);
+  const [foods, setFoods] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [foodCart, setFoodCart] = useState([]);
+  const [totalCal, setTotalCal] = useState(0);
+
+  const getFoodsFunc = async () => {
+    try {
+      setLoading(true);
+      const token = await authStorage.getToken();
+      const result = await getFoods(token);
+      setLoading(false);
+
+      if (result.data.message) return;
+      setFoods(result.data);
+    } catch (ex) {
+      console.log(ex);
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    getFoodsFunc();
+  }, []);
+
+  const handleAddFoodCart = (food) => {
+    const tempArr = [...foodCart];
+    const index = tempArr.indexOf(food);
+
+    if (index === -1) {
+      tempArr.push(food);
+      const tCal = totalCal + parseInt(food.c_calories);
+      setTotalCal(tCal);
+    } else {
+      tempArr.splice(index, 1);
+      const tCal = totalCal - parseInt(food.c_calories);
+      setTotalCal(tCal);
+    }
+
+    console.log(tempArr);
+    setFoodCart(tempArr);
+  };
 
   return (
     <Screen style={{ backgroundColor: "white" }}>
@@ -111,23 +156,61 @@ const AddFoodScreen = ({ route, navigation }) => {
         </ScrollView>
         <View style={styles.progressCont}>
           <AppText style={styles.progressTxt}>
-            {diet.cal} Cal{" "}
+            {totalCal} Cal{" "}
             <AppText style={styles.progressDescTxt}>added</AppText>
           </AppText>
           <View style={styles.progressMark}>
             <View style={[styles.progressInnerMark, { width: "20%" }]} />
           </View>
         </View>
+        {loading && <AppText style={styles.loadTxt}>Loading Foods...</AppText>}
+        {!loading && foods && foods.length === 0 && (
+          <AppText style={[styles.loadTxt, { color: "#e02828" }]}>
+            No Foods
+          </AppText>
+        )}
         <ScrollView style={{ height: 450 }}>
-          {foodData.map((f, index) => (
-            <View key={index} style={styles.foodListCont}>
-              <AppText style={styles.foodName}>{f.foodName}</AppText>
-              <View style={styles.foodListRightContents}>
-                <AppText style={styles.foodCal}>{f.cal} Cal</AppText>
-                <Icon name={f.added ? "cross" : "add"} />
-              </View>
-            </View>
-          ))}
+          {searchText
+            ? foods
+                .filter((f) =>
+                  f.c_item.toLowerCase().includes(searchText.toLowerCase())
+                )
+                .map((f, index) => (
+                  <View key={index} style={styles.foodListCont}>
+                    <AppText style={styles.foodName}>
+                      {f.c_item.substring(0, 30)}
+                    </AppText>
+                    <View style={styles.foodListRightContents}>
+                      <AppText style={styles.foodCal}>
+                        {f.c_calories} Cal
+                      </AppText>
+                      <TouchableOpacity
+                        activeOpacity={0.7}
+                        onPress={() => handleAddFoodCart(f)}
+                      >
+                        <Icon
+                          name={foodCart.indexOf(f) > -1 ? "cross" : "add"}
+                        />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ))
+            : foods.map((f, index) => (
+                <View key={index} style={styles.foodListCont}>
+                  <AppText style={styles.foodName}>
+                    {f.c_item.substring(0, 30)}
+                  </AppText>
+                  <View style={styles.foodListRightContents}>
+                    <AppText style={styles.foodCal}>{f.c_calories} Cal</AppText>
+                    <TouchableOpacity
+                      activeOpacity={0.4}
+                      onPress={() => handleAddFoodCart(f)}
+                    >
+                      <Icon name={foodCart.indexOf(f) > -1 ? "cross" : "add"} />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))}
         </ScrollView>
       </View>
       <View style={styles.nextBtn}>
@@ -165,6 +248,12 @@ const styles = StyleSheet.create({
     opacity: 0.8,
     marginTop: 10,
     alignSelf: "center",
+  },
+  loadTxt: {
+    fontSize: 12,
+    textAlign: "center",
+    color: "green",
+    margin: 15,
   },
   foodTypeCont: {
     padding: 15,

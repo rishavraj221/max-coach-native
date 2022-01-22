@@ -7,7 +7,7 @@ import settings from "../config/settings";
 const apiClient = create({
   baseURL: settings.apiUrl,
 });
-const verifyOTPapi = (headers) =>
+const clientWithHeaders = (headers) =>
   create({
     baseURL: settings.apiUrl,
     headers,
@@ -31,4 +31,4 @@ apiClient.get = async (url, params, axiosConfig) => {
   return data ? { ok: true, data } : response;
 };
 
-export { apiClient, verifyOTPapi };
+export { apiClient, clientWithHeaders };

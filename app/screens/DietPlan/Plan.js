@@ -8,6 +8,7 @@ import {
   Modal,
 } from "react-native";
 import { Calendar } from "react-native-calendars";
+import moment from "moment";
 
 import AppText from "../../components/Text";
 import AppButton from "../../components/Button";
@@ -83,33 +84,14 @@ const PlanScreen = ({ navigation }) => {
       >
         <View style={styles.modalFull}>
           <View style={[styles.modal, { height: showCalander ? 400 : 350 }]}>
-            {showCalander ? (
-              <Calendar
-                onDayPress={(day) => {
-                  setCalenderDay(day.dateString);
-                  setShowCalander(false);
-                  setShowCalanderModal(false);
-                }}
-              />
-            ) : (
-              calenderFilter.map((st, index) => (
-                <TouchableOpacity
-                  key={index}
-                  onPress={() => {
-                    if (st === "Custom") {
-                      setShowCalander(true);
-                      return;
-                    }
-                    setCalenderDay(st);
-                    setShowCalanderModal(false);
-                  }}
-                >
-                  <AppText style={[styles.modalHeadText, { marginBottom: 30 }]}>
-                    {st}
-                  </AppText>
-                </TouchableOpacity>
-              ))
-            )}
+            <Calendar
+              onDayPress={(day) => {
+                console.log(day);
+                setCalenderDay(moment(day.dateString).format("Do MMM, YYYY"));
+                setShowCalander(false);
+                setShowCalanderModal(false);
+              }}
+            />
           </View>
         </View>
       </Modal>

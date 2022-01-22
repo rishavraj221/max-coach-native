@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   StyleSheet,
   View,
@@ -12,6 +12,9 @@ import AppText from "../components/Text";
 import Screen from "../components/Screen";
 import Icon from "../assets/Icons";
 import routes from "../navigation/routes";
+import { getClientDiet } from "../api/diet";
+import useAuth from "../auth/useAuth";
+import authStorage from "../auth/storage";
 
 const appointments = [
   {
@@ -53,6 +56,30 @@ const appointments = [
 
 const MyClientsDetailScreen = ({ route, navigation }) => {
   const client = route.params;
+  const auth = useAuth();
+  const [dietPlan, setDietPlan] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const getDietPlan = async (coach_id, client_id) => {
+    try {
+      setLoading(true);
+      const token = await authStorage.getToken();
+      const result = await getClientDiet(token, coach_id, client_id);
+      setLoading(false);
+
+      if (result.data.message) return;
+
+      setDietPlan(result.data);
+    } catch (ex) {
+      console.log(ex);
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    getDietPlan(auth.user.id, client.c_id);
+  }, []);
+
   return (
     <Screen>
       <ScrollView style={{ backgroundColor: "white" }}>
@@ -65,7 +92,7 @@ const MyClientsDetailScreen = ({ route, navigation }) => {
               style={styles.profilePic}
               source={require("../assets/avatar.png")}
             />
-            <AppText style={styles.profileName}>{client.name}</AppText>
+            <AppText style={styles.profileName}>{client.c_name}</AppText>
             <View style={styles.connectBtnCont}>
               <Icon name="comment" size="20" style={styles.commentIcon} />
               <Icon name="phone" size="22" style={styles.commentIcon} />
@@ -75,30 +102,32 @@ const MyClientsDetailScreen = ({ route, navigation }) => {
           <View style={styles.statCont1}>
             <View style={styles.statDet}>
               <AppText style={styles.statKey}>Gender</AppText>
-              <AppText style={styles.statVal}>{client.gender}</AppText>
+              <AppText style={styles.statVal}>{client.c_gender}</AppText>
             </View>
             <View style={styles.statDet}>
               <AppText style={styles.statKey}>Age</AppText>
-              <AppText style={styles.statVal}>{client.age}</AppText>
+              <AppText style={styles.statVal}>{client.c_age}</AppText>
             </View>
             <View style={styles.statDet}>
               <AppText style={styles.statKey}>Weight</AppText>
-              <AppText style={styles.statVal}>{client.weight}</AppText>
+              <AppText style={styles.statVal}>{client.c_weight}</AppText>
             </View>
             <View style={styles.statDet}>
               <AppText style={styles.statKey}>Height</AppText>
-              <AppText style={styles.statVal}>{client.height}</AppText>
+              <AppText style={styles.statVal}>{client.c_height}</AppText>
             </View>
           </View>
           <View style={styles.vbar} />
           <View style={styles.statCont1}>
             <View style={styles.statDet}>
               <AppText style={styles.statKey}>Status</AppText>
-              <AppText style={styles.statVal}>{client.status}</AppText>
+              <AppText style={styles.statVal}>{client.c_status}</AppText>
             </View>
             <View style={styles.statDet}>
               <AppText style={styles.statKey}>Fitness Goal</AppText>
-              <AppText style={styles.statVal}>{client.fitnessGoal}</AppText>
+              <AppText style={styles.statVal}>
+                {client.c_fitnessobjective}
+              </AppText>
             </View>
           </View>
         </View>
@@ -119,8 +148,14 @@ const MyClientsDetailScreen = ({ route, navigation }) => {
           >
             <Icon name="dietPlan" style={{ marginLeft: 15 }} />
             <View style={styles.planStat}>
-              <AppText style={styles.planStatHead}>Fitness Plan</AppText>
-              <AppText style={styles.planStatVal}>Create New</AppText>
+              <AppText style={styles.planStatHead}>Diet Plan</AppText>
+              <AppText style={styles.planStatVal}>
+                {loading
+                  ? "Loading..."
+                  : dietPlan
+                  ? dietPlan.di_category
+                  : "Create New"}
+              </AppText>
             </View>
           </TouchableOpacity>
         </View>
