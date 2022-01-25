@@ -142,7 +142,12 @@ const MyClientsDetailScreen = ({ route, navigation }) => {
           <TouchableOpacity
             style={styles.planBtn}
             onPress={() =>
-              navigation.navigate(routes.DIET_PLAN_TEMPLATE, client)
+              dietPlan
+                ? navigation.navigate(routes.CREATE_DIET_PLAN, {
+                    dietPlan,
+                    client,
+                  })
+                : navigation.navigate(routes.DIET_PLAN_TEMPLATE, client)
             }
             activeOpacity={0.8}
           >

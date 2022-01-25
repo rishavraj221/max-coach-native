@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   StyleSheet,
   ScrollView,
@@ -6,6 +6,7 @@ import {
   Image,
   TouchableOpacity,
   Modal,
+  RefreshControl,
 } from "react-native";
 import { Calendar } from "react-native-calendars";
 import moment from "moment";
@@ -15,62 +16,77 @@ import AppButton from "../../components/Button";
 import Screen from "../../components/Screen";
 import Icon from "../../assets/Icons";
 import routes from "../../navigation/routes";
+import { getClientDiet } from "../../api/diet";
+import useAuth from "../../auth/useAuth";
+import authStorage from "../../auth/storage";
 
-const user = {
-  name: "Rahul Sharma",
-  dietPlan: "Weight Loss",
-  caloriesDetails: [
-    {
-      dietName: "Morning Snacks",
-      time: "6:00 AM",
-      cal: 100,
-    },
-    {
-      dietName: "Breakfast",
-      time: "9:00 AM",
-      cal: 200,
-    },
-    {
-      dietName: "Lunch",
-      time: "12:00 PM",
-      cal: 1081,
-    },
-    {
-      dietName: "Evening Snacks",
-      time: "6:00 PM",
-      cal: 200,
-    },
-    {
-      dietName: "Dinner",
-      time: "9:00 PM",
-      cal: 1081,
-    },
-    {
-      dietName: "Other",
-      time: "10:00 PM",
-      cal: 0,
-    },
-  ],
-};
-
-const calenderFilter = [
-  "Today",
-  "Tomorrow",
-  "Yesterday",
-  "Day after tomorrow",
-  "Day before yesterday",
-  "Custom",
-];
-
-const PlanScreen = ({ navigation }) => {
+const PlanScreen = ({ route, navigation }) => {
+  const auth = useAuth();
+  const dietPlanFromNav = route.params.dietPlan;
+  const client = route.params.client;
   const [showCalanderModal, setShowCalanderModal] = useState(false);
   const [calenderDay, setCalenderDay] = useState("Today");
   const [showCalander, setShowCalander] = useState(false);
+  const [dietPlan, setDietPlan] = useState(dietPlanFromNav);
+  const [selectedDate, setSelectedDate] = useState(
+    moment().format("YYYY-MM-DD")
+  );
+  const [selectedDayIndex, setSelectedDateIndex] = useState(moment().day());
+  const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const calDet = user.caloriesDetails;
+  const getDietPlan = async (coach_id, client_id) => {
+    try {
+      setLoading(true);
+      setRefreshing(true);
+      const token = await authStorage.getToken();
+      const result = await getClientDiet(token, coach_id, client_id);
+      setRefreshing(false);
+      setLoading(false);
+
+      if (result.data.message) return;
+
+      setDietPlan(result.data);
+    } catch (ex) {
+      console.log(ex);
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    getDietPlan(auth.user.id, client.c_id);
+  }, []);
+
   let totalCal = 0;
+  dietPlan.di_item
+    .filter((d) => d.day === selectedDayIndex)
+    .forEach((d) => (totalCal += d.calories));
 
-  calDet.forEach((c) => (totalCal += c.cal));
+  const dateHasPlan = (datesArr, givenDate) => {
+    const tempDate = moment(givenDate).format("YYYY-MM-DD");
+
+    let res = false;
+
+    datesArr.forEach((d) => {
+      if (d === tempDate) res = true;
+    });
+
+    return res;
+  };
+
+  const getMarkedDatesForCalendar = (datesArr) => {
+    let res = {};
+
+    datesArr.forEach((date) => {
+      const r = {
+        selected: true,
+        selectedColor: "#e02828",
+      };
+      res = { ...res, [date]: r };
+    });
+
+    return res;
+  };
 
   return (
     <Screen>
@@ -85,17 +101,35 @@ const PlanScreen = ({ navigation }) => {
         <View style={styles.modalFull}>
           <View style={[styles.modal, { height: showCalander ? 400 : 350 }]}>
             <Calendar
+              minDate={moment(dietPlan.di_dates[0]).format("YYYY-MM-DD")}
+              maxDate={moment(
+                dietPlan.di_dates[dietPlan.di_dates.length - 1]
+              ).format("YYYY-MM-DD")}
               onDayPress={(day) => {
-                console.log(day);
                 setCalenderDay(moment(day.dateString).format("Do MMM, YYYY"));
+                setSelectedDate(day.dateString);
+                setSelectedDateIndex(moment(day.dateString).day());
                 setShowCalander(false);
                 setShowCalanderModal(false);
+              }}
+              markedDates={getMarkedDatesForCalendar(dietPlan.di_dates)}
+              theme={{
+                arrowColor: "#e02828",
               }}
             />
           </View>
         </View>
       </Modal>
-      <ScrollView style={{ backgroundColor: "white" }}>
+
+      <ScrollView
+        style={{ backgroundColor: "white" }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => getDietPlan(auth.user.id, client.c_id)}
+          />
+        }
+      >
         <View style={styles.headContainer}>
           <TouchableOpacity
             activeOpacity={0.7}
@@ -108,9 +142,12 @@ const PlanScreen = ({ navigation }) => {
             source={require("../../assets/avatar.png")}
           />
           <View style={styles.nameDescCont}>
-            <AppText style={styles.nameTxt}>Rahul Sharma</AppText>
+            <AppText style={styles.nameTxt}>{client.c_name}</AppText>
             <AppText style={styles.descTxt}>
-              Diet Plan <AppText style={styles.descValTxt}>Weight Loss</AppText>
+              Diet Plan{" "}
+              <AppText style={styles.descValTxt}>
+                {dietPlan.di_category}
+              </AppText>
             </AppText>
           </View>
         </View>
@@ -132,20 +169,31 @@ const PlanScreen = ({ navigation }) => {
             <View style={[styles.progressInnerMark, { width: "20%" }]} />
           </View>
         </View>
-        {user.caloriesDetails.map((c, index) => (
-          <View key={index} style={styles.dietList}>
-            <AppText style={styles.dietName}>{c.dietName}</AppText>
-            <AppText style={styles.dietTime}>{c.time}</AppText>
-            <AppText style={styles.dietCal}>{c.cal} Cal</AppText>
-            <TouchableOpacity
-              activeOpacity={0.7}
-              style={{ marginLeft: "10%" }}
-              onPress={() => navigation.navigate(routes.ADD_FOOD, c)}
-            >
-              <Icon name="add" />
-            </TouchableOpacity>
-          </View>
-        ))}
+        {loading && <AppText style={styles.loadTxt}>Loading...</AppText>}
+        {dateHasPlan(dietPlan.di_dates, selectedDate) ? (
+          dietPlan.di_item
+            .filter((d) => d.day === selectedDayIndex)
+            .map((c, index) => (
+              <View key={index} style={styles.dietList}>
+                <AppText style={styles.dietName}>{c.mealName}</AppText>
+                <AppText style={styles.dietTime}>{c.time}</AppText>
+                <AppText style={styles.dietCal}>{c.calories} Cal</AppText>
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  style={{ marginLeft: "10%" }}
+                  onPress={() =>
+                    navigation.navigate(routes.ADD_FOOD, { diet: c, client })
+                  }
+                >
+                  <Icon name="add" />
+                </TouchableOpacity>
+              </View>
+            ))
+        ) : (
+          <AppText style={[styles.loadTxt, { color: "#e02828" }]}>
+            {loading ? "" : "No Plan for this Date"}
+          </AppText>
+        )}
       </ScrollView>
       <View style={styles.nextBtn}>
         <AppButton title="Create Diet Plan" width="90%" onPress={() => {}} />
@@ -292,6 +340,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     position: "absolute",
     bottom: 20,
+  },
+  loadTxt: {
+    fontSize: 12,
+    textAlign: "center",
+    color: "green",
+    margin: 15,
   },
 });
 

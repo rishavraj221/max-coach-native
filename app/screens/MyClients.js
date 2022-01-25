@@ -106,7 +106,6 @@ const MyClientsScreen = ({ navigation }) => {
 
       if (!result.ok) return console.log(result);
       setClients(result.data);
-      console.log(result);
     } catch (ex) {
       console.log(ex);
     }

@@ -14,7 +14,9 @@ import AppText from "../../components/Text";
 import AppButton from "../../components/Button";
 import Screen from "../../components/Screen";
 import routes from "../../navigation/routes";
+import { createDietPlan, getClientDiet } from "../../api/diet";
 import useAuth from "../../auth/useAuth";
+import authStorage from "../../auth/storage";
 
 const weeks = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -125,7 +127,7 @@ const DietPlanTemplate = ({ route, navigation }) => {
     return res;
   };
 
-  const handleNextBtn = () => {
+  const handleNextBtn = async () => {
     if (!selectTemplate)
       return Alert.alert("Please select template", "Template is required");
     if (selectWeeks.length === 0)
@@ -141,26 +143,28 @@ const DietPlanTemplate = ({ route, navigation }) => {
 
     const diet_plan_dates = gen_dates(repeat, selectWeeks);
 
-    console.log(
-      JSON.stringify(
-        {
-          client_id: client.c_id,
-          coach_id: auth.user.id,
-          di_weeks: repeat,
-          date_created: moment().format("YYYY-MM-DD"),
-          di_category: getTemplateName(selectTemplate),
-          di_days: selectWeeks,
-          di_item: generateDiItems(),
-          di_dates: diet_plan_dates,
-          start_date: diet_plan_dates[0],
-          end_date: diet_plan_dates[diet_plan_dates.length - 1],
-        },
-        null,
-        2
-      )
-    );
+    const token = await authStorage.getToken();
+
+    await createDietPlan(token, {
+      client_id: client.c_id,
+      coach_id: auth.user.id,
+      di_weeks: repeat,
+      date_created: moment().format("YYYY-MM-DD"),
+      di_category: getTemplateName(selectTemplate),
+      di_days: selectWeeks,
+      di_item: generateDiItems(),
+      di_dates: diet_plan_dates,
+      start_date: diet_plan_dates[0],
+      end_date: diet_plan_dates[diet_plan_dates.length - 1],
+    });
+
+    const result = await getClientDiet(token, auth.user.id, client.c_id);
+
     // console.log(generateDiItems);
-    navigation.navigate(routes.CREATE_DIET_PLAN);
+    navigation.navigate(routes.CREATE_DIET_PLAN, {
+      dietPlan: result.data,
+      client,
+    });
   };
 
   return (

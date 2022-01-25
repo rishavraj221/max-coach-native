@@ -11,52 +11,10 @@ import AppText from "../../components/Text";
 import AppButton from "../../components/Button";
 import Screen from "../../components/Screen";
 import Icon from "../../assets/Icons";
-import { getFoods } from "../../api/diet";
+import { getFoods, updateDietPlan, getClientDiet } from "../../api/diet";
 import useAuth from "../../auth/useAuth";
 import authStorage from "../../auth/storage";
-
-const foodData = [
-  {
-    foodName: "Rava Upma",
-    cal: 170,
-    added: false,
-  },
-  {
-    foodName: "Banana",
-    cal: 340,
-    added: true,
-  },
-  {
-    foodName: "Samosa",
-    cal: 349,
-    added: true,
-  },
-  {
-    foodName: "Orange",
-    cal: 62,
-    added: false,
-  },
-  {
-    foodName: "Green Tea",
-    cal: 89,
-    added: false,
-  },
-  {
-    foodName: "Marie Gold",
-    cal: 43,
-    added: false,
-  },
-  {
-    foodName: "Coffee",
-    cal: 122,
-    added: false,
-  },
-  {
-    foodName: "Cow Milk",
-    cal: 170,
-    added: false,
-  },
-];
+import routes from "../../navigation/routes";
 
 const foodTypes = [
   "Vegetarian",
@@ -68,11 +26,14 @@ const foodTypes = [
 
 const AddFoodScreen = ({ route, navigation }) => {
   const auth = useAuth();
-  const diet = route.params;
+  const diet = route.params.diet;
+  const client = route.params.client;
+
   const [searchText, setSearchText] = useState("");
   const [foodType, setFoodType] = useState(foodTypes[0]);
   const [foods, setFoods] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [adding, setAdding] = useState(false);
   const [foodCart, setFoodCart] = useState([]);
   const [totalCal, setTotalCal] = useState(0);
 
@@ -85,6 +46,9 @@ const AddFoodScreen = ({ route, navigation }) => {
 
       if (result.data.message) return;
       setFoods(result.data);
+      setTotalCal(diet.calories);
+      const tempArr = [...diet.food_items];
+      setFoodCart(tempArr);
     } catch (ex) {
       console.log(ex);
       setLoading(false);
@@ -109,8 +73,45 @@ const AddFoodScreen = ({ route, navigation }) => {
       setTotalCal(tCal);
     }
 
-    console.log(tempArr);
     setFoodCart(tempArr);
+  };
+
+  const handleAddFood = async () => {
+    try {
+      setAdding(true);
+      const token = await authStorage.getToken();
+      await updateDietPlan(token, {
+        c_id: client.c_id,
+        d_id: auth.user.id,
+        meal_to_update: {
+          calories: totalCal,
+          day: diet.day,
+          food_items: foodCart,
+          mealName: diet.mealName,
+          time: diet.time,
+        },
+      });
+      setAdding(false);
+
+      const result = await getClientDiet(token, auth.user.id, client.c_id);
+
+      navigation.navigate(routes.CREATE_DIET_PLAN, {
+        dietPlan: result.data,
+        client,
+      });
+    } catch (ex) {
+      console.log(ex);
+    }
+  };
+
+  const foodIsPresent = (foodArr, foodId) => {
+    let res = false;
+
+    foodArr.forEach((f) => {
+      if (f.c_id === foodId) res = true;
+    });
+
+    return res;
   };
 
   return (
@@ -169,6 +170,7 @@ const AddFoodScreen = ({ route, navigation }) => {
             No Foods
           </AppText>
         )}
+        {adding && <AppText style={styles.loadTxt}>Adding...</AppText>}
         <ScrollView style={{ height: 450 }}>
           {searchText
             ? foods
@@ -189,7 +191,9 @@ const AddFoodScreen = ({ route, navigation }) => {
                         onPress={() => handleAddFoodCart(f)}
                       >
                         <Icon
-                          name={foodCart.indexOf(f) > -1 ? "cross" : "add"}
+                          name={
+                            foodIsPresent(foodCart, f.c_id) ? "cross" : "add"
+                          }
                         />
                       </TouchableOpacity>
                     </View>
@@ -206,7 +210,9 @@ const AddFoodScreen = ({ route, navigation }) => {
                       activeOpacity={0.4}
                       onPress={() => handleAddFoodCart(f)}
                     >
-                      <Icon name={foodCart.indexOf(f) > -1 ? "cross" : "add"} />
+                      <Icon
+                        name={foodIsPresent(foodCart, f.c_id) ? "cross" : "add"}
+                      />
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -215,9 +221,9 @@ const AddFoodScreen = ({ route, navigation }) => {
       </View>
       <View style={styles.nextBtn}>
         <AppButton
-          title={`Add to ${diet.dietName}`}
+          title={`Add to ${diet.mealName}`}
           width="90%"
-          onPress={() => {}}
+          onPress={handleAddFood}
         />
       </View>
     </Screen>
