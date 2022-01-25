@@ -131,7 +131,7 @@ const MyClientsScreen = ({ navigation }) => {
           ? clients &&
             clients
               .filter((d) =>
-                d.name.toLowerCase().includes(searchText.toLowerCase())
+                d.c_name.toLowerCase().includes(searchText.toLowerCase())
               )
               .map((d, index) => (
                 <MyClientCard
