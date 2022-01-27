@@ -59,18 +59,31 @@ const AddFoodScreen = ({ route, navigation }) => {
     getFoodsFunc();
   }, []);
 
+  const getFoodIndex = (foodArr, foodId) => {
+    let ind = -1;
+
+    foodArr.forEach((f, index) => {
+      if (f.c_id === foodId) {
+        ind = index;
+      }
+    });
+
+    return ind;
+  };
+
   const handleAddFoodCart = (food) => {
     const tempArr = [...foodCart];
-    const index = tempArr.indexOf(food);
 
-    if (index === -1) {
-      tempArr.push(food);
-      const tCal = totalCal + parseInt(food.c_calories);
-      setTotalCal(tCal);
+    const isPresent = foodIsPresent(tempArr, food.c_id);
+    if (isPresent) {
+      const foodInd = getFoodIndex(tempArr, food.c_id);
+      if (foodInd > -1) {
+        tempArr.splice(foodInd, 1);
+        setTotalCal(parseInt(totalCal) - parseInt(food.c_calories));
+      }
     } else {
-      tempArr.splice(index, 1);
-      const tCal = totalCal - parseInt(food.c_calories);
-      setTotalCal(tCal);
+      tempArr.push(food);
+      setTotalCal(parseInt(totalCal) + parseInt(food.c_calories));
     }
 
     setFoodCart(tempArr);

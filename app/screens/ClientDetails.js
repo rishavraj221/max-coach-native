@@ -13,6 +13,7 @@ import Screen from "../components/Screen";
 import Icon from "../assets/Icons";
 import routes from "../navigation/routes";
 import { getClientDiet } from "../api/diet";
+import { getFullFitnessPlan } from "../api/fitness";
 import useAuth from "../auth/useAuth";
 import authStorage from "../auth/storage";
 
@@ -57,8 +58,12 @@ const appointments = [
 const MyClientsDetailScreen = ({ route, navigation }) => {
   const client = route.params;
   const auth = useAuth();
+
   const [dietPlan, setDietPlan] = useState(null);
+  const [fitnessPlan, setFitnessPlan] = useState(null);
+
   const [loading, setLoading] = useState(false);
+  const [fitnessLoading, setFitnessLoading] = useState(false);
 
   const getDietPlan = async (coach_id, client_id) => {
     try {
@@ -76,8 +81,25 @@ const MyClientsDetailScreen = ({ route, navigation }) => {
     }
   };
 
+  const getFitnessPlan = async (coach_id, client_id) => {
+    try {
+      setFitnessLoading(true);
+      const token = await authStorage.getToken();
+      const result = await getFullFitnessPlan(token, coach_id, client_id);
+      setFitnessLoading(false);
+
+      if (result.data.message) return;
+
+      setFitnessPlan(result.data);
+    } catch (ex) {
+      console.log(ex);
+      setFitnessLoading(false);
+    }
+  };
+
   useEffect(() => {
     getDietPlan(auth.user.id, client.c_id);
+    getFitnessPlan(auth.user.id, client.c_id);
   }, []);
 
   return (
@@ -132,11 +154,28 @@ const MyClientsDetailScreen = ({ route, navigation }) => {
           </View>
         </View>
         <View style={styles.planCont}>
-          <TouchableOpacity style={styles.planBtn} activeOpacity={0.8}>
+          <TouchableOpacity
+            style={styles.planBtn}
+            activeOpacity={0.8}
+            onPress={() =>
+              fitnessPlan
+                ? navigation.navigate(routes.CREATE_FITNESS_PLAN, {
+                    fitnessPlan,
+                    client,
+                  })
+                : navigation.navigate(routes.FITNESS_PLAN_TEMPLATE, client)
+            }
+          >
             <Icon name="fitnessPlan" style={{ marginLeft: 15 }} />
             <View style={styles.planStat}>
               <AppText style={styles.planStatHead}>Fitness Plan</AppText>
-              <AppText style={styles.planStatVal}>Create New</AppText>
+              <AppText style={styles.planStatVal}>
+                {fitnessLoading
+                  ? "Loading..."
+                  : fitnessPlan
+                  ? fitnessPlan.ft_category
+                  : "Create New"}
+              </AppText>
             </View>
           </TouchableOpacity>
           <TouchableOpacity

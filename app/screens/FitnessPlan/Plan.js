@@ -16,18 +16,18 @@ import AppButton from "../../components/Button";
 import Screen from "../../components/Screen";
 import Icon from "../../assets/Icons";
 import routes from "../../navigation/routes";
-import { getClientDiet } from "../../api/diet";
 import useAuth from "../../auth/useAuth";
 import authStorage from "../../auth/storage";
+import { getFullFitnessPlan } from "../../api/fitness";
 
 const PlanScreen = ({ route, navigation }) => {
   const auth = useAuth();
-  const dietPlanFromNav = route.params.dietPlan;
+  const fitnessPlanFromNav = route.params.fitnessPlan;
   const client = route.params.client;
   const [showCalanderModal, setShowCalanderModal] = useState(false);
   const [calenderDay, setCalenderDay] = useState("Today");
   const [showCalander, setShowCalander] = useState(false);
-  const [dietPlan, setDietPlan] = useState(dietPlanFromNav);
+  const [fitnessPlan, setFitnessPlan] = useState(fitnessPlanFromNav);
   const [selectedDate, setSelectedDate] = useState(
     moment().format("YYYY-MM-DD")
   );
@@ -40,13 +40,13 @@ const PlanScreen = ({ route, navigation }) => {
       setLoading(true);
       setRefreshing(true);
       const token = await authStorage.getToken();
-      const result = await getClientDiet(token, coach_id, client_id);
+      const result = await getFullFitnessPlan(token, coach_id, client_id);
       setRefreshing(false);
       setLoading(false);
 
       if (result.data.message) return;
 
-      setDietPlan(result.data);
+      setFitnessPlan(result.data);
     } catch (ex) {
       console.log(ex);
       setLoading(false);
@@ -58,7 +58,7 @@ const PlanScreen = ({ route, navigation }) => {
   }, []);
 
   let totalCal = 0;
-  dietPlan.di_item
+  fitnessPlan.ft_item
     .filter((d) => d.day === selectedDayIndex)
     .forEach((d) => (totalCal += d.calories));
 
@@ -101,9 +101,9 @@ const PlanScreen = ({ route, navigation }) => {
         <View style={styles.modalFull}>
           <View style={[styles.modal, { height: showCalander ? 400 : 350 }]}>
             <Calendar
-              minDate={moment(dietPlan.di_dates[0]).format("YYYY-MM-DD")}
+              minDate={moment(fitnessPlan.ft_dates[0]).format("YYYY-MM-DD")}
               maxDate={moment(
-                dietPlan.di_dates[dietPlan.di_dates.length - 1]
+                fitnessPlan.ft_dates[fitnessPlan.ft_dates.length - 1]
               ).format("YYYY-MM-DD")}
               onDayPress={(day) => {
                 setCalenderDay(moment(day.dateString).format("Do MMM, YYYY"));
@@ -112,7 +112,7 @@ const PlanScreen = ({ route, navigation }) => {
                 setShowCalander(false);
                 setShowCalanderModal(false);
               }}
-              markedDates={getMarkedDatesForCalendar(dietPlan.di_dates)}
+              markedDates={getMarkedDatesForCalendar(fitnessPlan.ft_dates)}
               theme={{
                 arrowColor: "#e02828",
               }}
@@ -146,7 +146,7 @@ const PlanScreen = ({ route, navigation }) => {
             <AppText style={styles.descTxt}>
               Diet Plan{" "}
               <AppText style={styles.descValTxt}>
-                {dietPlan.di_category}
+                {fitnessPlan.ft_category}
               </AppText>
             </AppText>
           </View>
@@ -170,20 +170,16 @@ const PlanScreen = ({ route, navigation }) => {
           </View>
         </View>
         {loading && <AppText style={styles.loadTxt}>Loading...</AppText>}
-        {dateHasPlan(dietPlan.di_dates, selectedDate) ? (
-          dietPlan.di_item
+        {dateHasPlan(fitnessPlan.ft_dates, selectedDate) ? (
+          fitnessPlan.ft_item
             .filter((d) => d.day === selectedDayIndex)
             .map((c, index) => (
               <View key={index} style={styles.dietList}>
-                <AppText style={styles.dietName}>{c.mealName}</AppText>
-                <AppText style={styles.dietTime}>{c.time}</AppText>
-                <AppText style={styles.dietCal}>{c.calories} Cal</AppText>
+                <AppText style={styles.dietName}>{c.workout_name}</AppText>
                 <TouchableOpacity
                   activeOpacity={0.7}
-                  style={{ marginLeft: "10%" }}
-                  onPress={() =>
-                    navigation.navigate(routes.ADD_FOOD, { diet: c, client })
-                  }
+                  style={{ marginLeft: "58%" }}
+                  onPress={() => {}}
                 >
                   <Icon name="add" />
                 </TouchableOpacity>
@@ -196,11 +192,7 @@ const PlanScreen = ({ route, navigation }) => {
         )}
       </ScrollView>
       <View style={styles.nextBtn}>
-        <AppButton
-          title="Create Diet Plan"
-          width="90%"
-          onPress={() => navigation.navigate(routes.DIET_SUCCESS, client)}
-        />
+        <AppButton title="Create Diet Plan" width="90%" onPress={() => {}} />
       </View>
     </Screen>
   );
