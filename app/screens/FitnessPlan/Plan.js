@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Modal,
   RefreshControl,
+  TextInput,
 } from "react-native";
 import { Calendar } from "react-native-calendars";
 import moment from "moment";
@@ -18,12 +19,17 @@ import Icon from "../../assets/Icons";
 import routes from "../../navigation/routes";
 import useAuth from "../../auth/useAuth";
 import authStorage from "../../auth/storage";
-import { getFullFitnessPlan } from "../../api/fitness";
+import {
+  getFullFitnessPlan,
+  getVideos,
+  updateFitnessPlan,
+} from "../../api/fitness";
 
 const PlanScreen = ({ route, navigation }) => {
   const auth = useAuth();
   const fitnessPlanFromNav = route.params.fitnessPlan;
   const client = route.params.client;
+
   const [showCalanderModal, setShowCalanderModal] = useState(false);
   const [calenderDay, setCalenderDay] = useState("Today");
   const [showCalander, setShowCalander] = useState(false);
@@ -35,7 +41,35 @@ const PlanScreen = ({ route, navigation }) => {
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  const getDietPlan = async (coach_id, client_id) => {
+  const [videosModal, setVideosModal] = useState(false);
+  const [searchText, setSearchText] = useState("");
+
+  const [warmUpVideos, setWarmUpVideos] = useState(null);
+  const [mainMovVideos, setMainMovVideos] = useState(null);
+  const [coolDownVideos, setCoolDownVideos] = useState(null);
+  const [vidLoading, setVidLoading] = useState(false);
+
+  const [videosCart, setVideosCart] = useState(null);
+  const [caloriesCart, setCalCart] = useState(0);
+  const [updating, setUpdating] = useState(false);
+
+  const getVidFromServer = async (category) => {
+    try {
+      setVidLoading(true);
+      const token = await authStorage.getToken();
+      const result = await getVideos(token, category);
+      setVidLoading(false);
+
+      if (category === "Warm Up") setWarmUpVideos(result.data.videos);
+      if (category === "Main Movement") setMainMovVideos(result.data.videos);
+      if (category === "Cool Down") setCoolDownVideos(result.data.videos);
+    } catch (ex) {
+      console.log(ex);
+      setVidLoading(false);
+    }
+  };
+
+  const getFitnessPlan = async (coach_id, client_id) => {
     try {
       setLoading(true);
       setRefreshing(true);
@@ -46,6 +80,16 @@ const PlanScreen = ({ route, navigation }) => {
 
       if (result.data.message) return;
 
+      const tempArr = [];
+      let tempCal = 0;
+      result.data.ft_item.forEach((i) => {
+        i.videos.forEach((v) => tempArr.push(v));
+        tempCal += i.calories;
+      });
+
+      setVideosCart(tempArr);
+      setCalCart(tempCal);
+
       setFitnessPlan(result.data);
     } catch (ex) {
       console.log(ex);
@@ -53,8 +97,31 @@ const PlanScreen = ({ route, navigation }) => {
     }
   };
 
+  const updateFitnessPlanFunc = async () => {
+    try {
+      setUpdating(true);
+      const token = await authStorage.getToken();
+      const result = await updateFitnessPlan(token, {
+        c_id: client.c_id,
+        d_id: auth.user.id,
+        videos_to_update: {
+          calories: caloriesCart,
+          day: videosModal.day,
+          videos: videosCart,
+          workout_name: videosModal.workout_name,
+        },
+      });
+      setUpdating(false);
+      setVideosModal(false);
+      console.log(result);
+    } catch (ex) {
+      console.log(ex);
+      setUpdating(false);
+    }
+  };
+
   useEffect(() => {
-    getDietPlan(auth.user.id, client.c_id);
+    getFitnessPlan(auth.user.id, client.c_id);
   }, []);
 
   let totalCal = 0;
@@ -86,6 +153,43 @@ const PlanScreen = ({ route, navigation }) => {
     });
 
     return res;
+  };
+
+  const videosArrCategory = (category) => {
+    if (category === "Warm Up" && warmUpVideos) return warmUpVideos;
+    else if (category === "Main Movement" && mainMovVideos)
+      return mainMovVideos;
+    else if (category === "Cool Down" && coolDownVideos) return coolDownVideos;
+
+    return false;
+  };
+
+  const videoAdded = (vidArr, vidId) => {
+    let res = false;
+
+    vidArr &&
+      vidArr.forEach((v) => {
+        if (v.vi_id === vidId) res = true;
+      });
+
+    return res;
+  };
+
+  const addVideoToCart = (video) => {
+    const tempArr = videosCart ? [...videosCart] : [];
+
+    if (videoAdded(tempArr, video.vi_id)) {
+      const index = tempArr.indexOf(
+        tempArr.filter((v) => v.vi_id === video.vi_id)[0]
+      );
+      tempArr.splice(index, 1);
+      setCalCart(parseInt(caloriesCart) - parseInt(video.vi_calories));
+    } else {
+      tempArr.push(video);
+      setCalCart(parseInt(caloriesCart) + parseInt(video.vi_calories));
+    }
+
+    setVideosCart(tempArr);
   };
 
   return (
@@ -121,15 +225,73 @@ const PlanScreen = ({ route, navigation }) => {
         </View>
       </Modal>
 
-      <ScrollView
-        style={{ backgroundColor: "white" }}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={() => getDietPlan(auth.user.id, client.c_id)}
-          />
-        }
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={videosModal ? true : false}
+        onRequestClose={() => {
+          setVideosModal(false);
+        }}
       >
+        <View style={styles.modalFull}>
+          <View style={[styles.modal, { height: "75%" }]}>
+            <AppText style={styles.modalH1}>{videosModal.workout_name}</AppText>
+            <TextInput
+              style={styles.searchTextInput}
+              onChangeText={setSearchText}
+              placeholder="Search Excercise"
+            />
+            {vidLoading && <AppText style={styles.loadTxt}>Loading...</AppText>}
+            {updating && <AppText style={styles.loadTxt}>Updating...</AppText>}
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {!vidLoading &&
+                videosArrCategory(videosModal.workout_name) &&
+                videosArrCategory(videosModal.workout_name)
+                  .filter((v) =>
+                    searchText ? v.vi_title.includes(searchText) : true
+                  )
+                  .map((wv, index) => (
+                    <View key={index} style={styles.modalVideosCont}>
+                      <Image
+                        style={styles.videoThm}
+                        source={require("../../assets/Arm-Circles.png")}
+                      />
+                      <View style={styles.videoDetCont}>
+                        <AppText style={styles.vidTitle}>
+                          {wv.vi_title.substring(0, 25)}
+                        </AppText>
+                        <AppText style={styles.vidCal}>
+                          {wv.vi_calories} Cal
+                        </AppText>
+                      </View>
+                      <AppText style={styles.vidTime}>
+                        {new Date(wv.vi_duration * 1000)
+                          .toISOString()
+                          .substring(14, 19)}{" "}
+                        Sec
+                      </AppText>
+                      <TouchableOpacity
+                        activeOpacity={0.7}
+                        style={styles.vidFuncIcon}
+                        onPress={() => addVideoToCart(wv)}
+                      >
+                        <Icon
+                          name={
+                            videoAdded(videosCart, wv.vi_id) ? "tick" : "circle"
+                          }
+                        />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+            </ScrollView>
+            <View style={styles.modalBtn}>
+              <AppButton title="Add / Update" onPress={updateFitnessPlanFunc} />
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <View style={{ backgroundColor: "white" }}>
         <View style={styles.headContainer}>
           <TouchableOpacity
             activeOpacity={0.7}
@@ -162,37 +324,82 @@ const PlanScreen = ({ route, navigation }) => {
         <View style={styles.shadowDownBar}></View>
         <View style={styles.progressCont}>
           <AppText style={styles.progressTxt}>
-            {totalCal} Cal{" "}
+            {caloriesCart} Cal{" "}
             <AppText style={styles.progressDescTxt}>added</AppText>
           </AppText>
           <View style={styles.progressMark}>
             <View style={[styles.progressInnerMark, { width: "20%" }]} />
           </View>
         </View>
-        {loading && <AppText style={styles.loadTxt}>Loading...</AppText>}
-        {dateHasPlan(fitnessPlan.ft_dates, selectedDate) ? (
-          fitnessPlan.ft_item
-            .filter((d) => d.day === selectedDayIndex)
-            .map((c, index) => (
-              <View key={index} style={styles.dietList}>
-                <AppText style={styles.dietName}>{c.workout_name}</AppText>
-                <TouchableOpacity
-                  activeOpacity={0.7}
-                  style={{ marginLeft: "58%" }}
-                  onPress={() => {}}
-                >
-                  <Icon name="add" />
-                </TouchableOpacity>
-              </View>
-            ))
-        ) : (
-          <AppText style={[styles.loadTxt, { color: "#e02828" }]}>
-            {loading ? "" : "No Plan for this Date"}
-          </AppText>
-        )}
-      </ScrollView>
+        <ScrollView
+          style={{ height: "58%" }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => getFitnessPlan(auth.user.id, client.c_id)}
+            />
+          }
+        >
+          {loading && <AppText style={styles.loadTxt}>Loading...</AppText>}
+          {dateHasPlan(fitnessPlan.ft_dates, selectedDate) ? (
+            fitnessPlan.ft_item
+              .filter((d) => d.day === selectedDayIndex)
+              .map((c, index) => (
+                <View key={index}>
+                  <View style={styles.dietList}>
+                    <AppText style={styles.dietName}>{c.workout_name}</AppText>
+                    <TouchableOpacity
+                      activeOpacity={0.7}
+                      style={{ marginLeft: "58%" }}
+                      onPress={() => {
+                        setVideosModal(c);
+                        getVidFromServer(c.workout_name);
+                      }}
+                    >
+                      <Icon name="add" />
+                    </TouchableOpacity>
+                  </View>
+                  {c.videos &&
+                    c.videos
+                      .filter((v) => v.vi_category === c.workout_name)
+                      .map((wv, index) => (
+                        <View key={index} style={styles.videosCont}>
+                          <Image
+                            style={styles.videoThm}
+                            source={require("../../assets/Arm-Circles.png")}
+                          />
+                          <View style={styles.videoDetCont}>
+                            <AppText style={styles.vidTitle}>
+                              {wv.vi_title.substring(0, 25)}
+                            </AppText>
+                            <AppText style={styles.vidCal}>
+                              {wv.vi_calories} Cal
+                            </AppText>
+                          </View>
+                          <AppText style={styles.vidTime}>
+                            {new Date(wv.vi_duration * 1000)
+                              .toISOString()
+                              .substring(14, 19)}{" "}
+                            Sec
+                          </AppText>
+                          <Icon name="cross" style={styles.vidFuncIcon} />
+                        </View>
+                      ))}
+                </View>
+              ))
+          ) : (
+            <AppText style={[styles.loadTxt, { color: "#e02828" }]}>
+              {loading ? "" : "No Plan for this Date"}
+            </AppText>
+          )}
+        </ScrollView>
+      </View>
       <View style={styles.nextBtn}>
-        <AppButton title="Create Diet Plan" width="90%" onPress={() => {}} />
+        <AppButton
+          title="Create Fitness Plan"
+          width="90%"
+          onPress={() => navigation.navigate(routes.FITNESS_SUCCESS, client)}
+        />
       </View>
     </Screen>
   );
@@ -218,6 +425,24 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: "rgba(68,68,68,0.8)",
     marginBottom: 10,
+  },
+  modalH1: {
+    textAlign: "center",
+    fontSize: 18,
+    color: "#444444",
+    fontWeight: "bold",
+  },
+  searchTextInput: {
+    backgroundColor: "#f8f8f8",
+    width: "100%",
+    marginTop: 15,
+    alignSelf: "center",
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 25,
+    color: "#707070",
+    opacity: 0.8,
+    fontSize: 14,
   },
   headContainer: {
     padding: 15,
@@ -342,6 +567,52 @@ const styles = StyleSheet.create({
     textAlign: "center",
     color: "green",
     margin: 15,
+  },
+  videosCont: {
+    flexDirection: "row",
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+  },
+  modalVideosCont: {
+    flexDirection: "row",
+    paddingTop: 30,
+  },
+  videoThm: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+  },
+  videoDetCont: {
+    width: "52%",
+    paddingHorizontal: 8,
+  },
+  vidTitle: {
+    color: "#444444",
+    fontSize: 14,
+  },
+  vidCal: {
+    color: "rgba(68, 68, 68, 0.8)",
+    fontWeight: "100",
+    fontSize: 14,
+    letterSpacing: -0.6,
+  },
+  vidTime: {
+    color: "#444444",
+    fontSize: 12,
+    width: "18%",
+    textAlign: "right",
+  },
+  vidFuncIcon: {
+    width: "15%",
+    alignItems: "center",
+  },
+  modalBtn: {
+    width: "100%",
+    alignItems: "center",
+    justifyContent: "center",
+    position: "absolute",
+    bottom: 20,
+    alignSelf: "center",
   },
 });
 

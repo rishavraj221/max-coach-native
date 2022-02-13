@@ -10,4 +10,10 @@ const getFullFitnessPlan = (token, coach_id, client_id) =>
     `${endPoint}/getFullPlan/${coach_id}/${client_id}`
   );
 
-export { createFitnessPlan, getFullFitnessPlan };
+const getVideos = (token, category) =>
+  clientWithHeaders({ token }).get(`/video/videoByCategory/${category}`);
+
+const updateFitnessPlan = (token, body) =>
+  clientWithHeaders({ token }).put(`${endPoint}/updateVideo`, body);
+
+export { createFitnessPlan, getFullFitnessPlan, getVideos, updateFitnessPlan };

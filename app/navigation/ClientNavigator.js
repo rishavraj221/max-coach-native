@@ -9,6 +9,7 @@ import DietPlanScreen from "../screens/DietPlan/Plan";
 import FitnessPlanScreen from "../screens/FitnessPlan/Plan";
 import AddFoodScreen from "../screens/DietPlan/AddFood";
 import DietSuccess from "../screens/DietPlan/DietSuccessful";
+import FitnessSuccess from "../screens/FitnessPlan/FitnessSuccessful";
 
 import routes from "./routes";
 
@@ -38,6 +39,7 @@ const ClientStackNavigator = () => {
       />
       <Stack.Screen name={routes.ADD_FOOD} component={AddFoodScreen} />
       <Stack.Screen name={routes.DIET_SUCCESS} component={DietSuccess} />
+      <Stack.Screen name={routes.FITNESS_SUCCESS} component={FitnessSuccess} />
     </Stack.Navigator>
   );
 };

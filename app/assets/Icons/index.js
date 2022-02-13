@@ -10,6 +10,7 @@ import Bell from "./bell";
 import Calander from "./calander";
 import CWD from "./calanderWithDate";
 import CalorieTracker from "./calorieTracker";
+import Circle from "./circle";
 import Comment from "./comment";
 import Cross from "./cross";
 import DietPlan from "./dietPlan";
@@ -17,6 +18,7 @@ import DropDown from "./dropdown";
 import FitnessPlan from "./fitnessPlan";
 import Home from "./home";
 import Phone from "./phone";
+import Tick from "./tick";
 import User from "./user";
 import WaterTracker from "./waterTracker";
 import WeightGain from "./weightGain";
@@ -41,6 +43,7 @@ const Icon = ({ name, size, color, style }) => {
     return <CWD style={style} size={size} color={color} />;
   if (t === "calorietracker")
     return <CalorieTracker style={style} size={size} color={color} />;
+  if (t === "circle") return <Circle style={style} size={size} color={color} />;
   if (t === "comment")
     return <Comment style={style} size={size} color={color} />;
   if (t === "cross") return <Cross style={style} size={size} color={color} />;
@@ -52,6 +55,7 @@ const Icon = ({ name, size, color, style }) => {
     return <FitnessPlan style={style} size={size} color={color} />;
   if (t === "home") return <Home style={style} size={size} color={color} />;
   if (t === "phone") return <Phone style={style} size={size} color={color} />;
+  if (t === "tick") return <Tick style={style} size={size} color={color} />;
   if (t === "user") return <User style={style} size={size} color={color} />;
   if (t === "watertracker")
     return <WaterTracker style={style} size={size} color={color} />;
