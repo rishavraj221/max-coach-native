@@ -1,6 +1,6 @@
 import React from "react";
 import { View } from "react-native";
-import Svg, { Path, G, Circle, Rect } from "react-native-svg";
+import Svg, { Path, G, Circle, Rect, Defs } from "react-native-svg";
 
 const DietSuccessSVG = ({ style }) => {
   return (
